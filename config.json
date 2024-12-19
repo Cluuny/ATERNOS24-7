@@ -1,5 +1,10 @@
 {
 	"ip":"buitresmc.aternos.me",
 	"port": "13689",
-	"name": "NodeBot"
+	"name": "NodeBot",
+	"spawnCoordinates": {
+    "x": 986,
+    "y": -44,
+    "z": 1371
+  }
 }
