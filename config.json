@@ -3,8 +3,7 @@
 	"port": "13689",
 	"name": "NodeBot",
 	"spawnCoordinates": {
-    "x": 986,
-    "y": -44,
-    "z": 1371
+    "zombies": [986, -44, 1371],
+    "base": [348, 90, 277]
   }
 }

@@ -3,9 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
-// Construir la ruta al archivo config.json
-console.log(__dirname)
-const configPath = path.join(__dirname, "/", 'config.json'); // Ajusta según la estructura de tus carpetas
+console.log(__dirname);
+const configPath = path.join(__dirname, 'config.json');
 
 let data;
 try {
@@ -13,12 +12,13 @@ try {
     data = JSON.parse(rawdata);
 } catch (error) {
     console.error(`Error al leer el archivo config.json en ${configPath}:`, error.message);
-    process.exit(1); // Termina el proceso si no puede leer el archivo de configuración
+    process.exit(1);
 }
 
 const pi = Math.PI;
-const moveInterval = 2; // Intervalo de movimiento en segundos
-const maxRandom = 5; // 0-5 segundos añadidos al intervalo de movimiento (aleatoriamente)
+const moveInterval = 2;
+const maxRandom = 5;
+const disconnectTime = 30 * 60 * 1000;
 
 let connected = 0;
 let lastTime = -1;
@@ -26,13 +26,11 @@ let moving = 0;
 const actions = ['forward', 'back', 'left', 'right'];
 let lastAction;
 
-// Función para generar un nombre aleatorio para el bot
 function generateRandomBotName() {
-    const randomNum = Math.floor(Math.random() * 1000); // Número aleatorio de 0 a 999
+    const randomNum = Math.floor(Math.random() * 1000);
     return `BOT${randomNum}`;
 }
 
-// Función para crear un bot
 function createBot() {
     const botName = generateRandomBotName();
     const bot = mineflayer.createBot({
@@ -40,18 +38,31 @@ function createBot() {
         username: botName
     });
 
+    let disconnectTimer = null;
+
     bot.on('login', () => {
         console.log(`Logged In with bot: ${botName}`);
     });
 
     bot.on('spawn', () => {
         connected = 1;
-        // Obtener las coordenadas de spawn del archivo de configuración
-        const { x, y, z } = data.spawnCoordinates;
+        let randomAppear = Math.ceil(Math.random() * 2);
+        if (randomAppear === 1) {
+            const zombies = data.spawnCoordinates.zombies;
+            bot.chat(`/tp ${zombies[0]} ${zombies[1]} ${zombies[2]}`);
+            console.log(`Teletransportando bot ${botName} a las coordenadas de zombies: (${zombies[0]}, ${zombies[1]}, ${zombies[2]})`);
+        } else {
+            const base = data.spawnCoordinates.base;
+            bot.chat(`/tp ${base[0]} ${base[1]} ${base[2]}`);
+            console.log(`Teletransportando bot ${botName} a las coordenadas de base: (${base[0]}, ${base[1]}, ${base[2]})`);
+        }
 
-        // Teletransportar el bot a las coordenadas especificadas
-        bot.chat(`/tp ${x} ${y} ${z}`);
-        console.log(`Teletransportando bot ${botName} a (${x}, ${y}, ${z})`);
+        disconnectTimer = setTimeout(() => {
+            if (bot.connected) {
+                console.log(`Desconectando bot ${botName} después de 30 minutos.`);
+                bot.quit('Tiempo de sesión completado (30 minutos).');
+            }
+        }, disconnectTime);
     });
 
     bot.on('time', () => {
@@ -89,10 +100,13 @@ function createBot() {
     bot.on('end', () => {
         connected = 0;
         console.log(`Bot ${botName} desconectado`);
+        if (disconnectTimer) {
+            clearTimeout(disconnectTimer);
+            disconnectTimer = null;
+        }
     });
 }
 
-// Crear el menú interactivo
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -105,8 +119,8 @@ function showMenu() {
             rl.close();
         } else if (answer === '2') {
             console.log('Creating bot every 15 minutes...');
-            createBot(); // Crear el primer bot inmediatamente
-            setInterval(createBot, 15 * 60 * 1000); // Crear un bot cada 15 minutos
+            createBot();
+            setInterval(createBot, 15 * 60 * 1000);
             rl.close();
         } else if (answer === '3') {
             console.log('Exiting...');
